@@ -1,0 +1,13 @@
+{
+  "session_id": "20260207_144626",
+  "start_time": "2026-02-07T14:46:26.281477",
+  "detections": [],
+  "stats": {
+    "total_frames": 0,
+    "frames_with_threats": 0,
+    "total_threats": 0,
+    "threat_counts": {}
+  },
+  "end_time": "2026-02-07T14:46:38.120198",
+  "duration_seconds": 11.838721
+}
