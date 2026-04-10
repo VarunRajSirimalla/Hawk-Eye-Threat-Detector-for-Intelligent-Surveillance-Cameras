@@ -1,0 +1,11 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>RTSP Stream</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="css/styles.css"/></head><body class="bg-gray-50">
+<nav class="bg-white shadow mb-6"><div class="max-w-6xl mx-auto px-4 py-3 flex justify-between"><span class="font-semibold text-teal-600">Threat Detection</span><div class="space-x-4 text-sm font-medium"><a href="index.html" class="hover:text-teal-600">Home</a><a href="upload.html" class="hover:text-teal-600">Upload Video</a><a href="webcam.html" class="hover:text-teal-600">Webcam</a><a href="rtsp.html" class="text-teal-600">RTSP</a><a href="dashboard.html" class="hover:text-teal-600">Dashboard</a></div></div></nav>
+<main class="max-w-5xl mx-auto px-4">
+<h1 class="text-2xl font-bold mb-4">RTSP Live Stream Detection</h1>
+<input id="rtspUrl" type="text" placeholder="rtsp://..." class="w-full border rounded px-3 py-2 mb-3" />
+<button id="connectBtn" class="bg-teal-600 text-white px-4 py-2 rounded">Connect</button>
+<div class="mt-4 relative"><img id="rtspFrame" class="w-96 h-72 bg-black object-contain"/><canvas id="rtspOverlay" class="absolute top-0 left-0"></canvas></div>
+<pre id="rtspLog" class="mt-4 text-xs bg-white p-3 rounded border h-48 overflow-y-auto"></pre>
+</main>
+<script src="js/rtsp.js"></script>
+</body></html>

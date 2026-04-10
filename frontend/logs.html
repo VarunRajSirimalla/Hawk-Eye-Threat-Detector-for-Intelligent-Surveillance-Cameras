@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detection Logs - HawkEye CNN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body class="bg-gray-50">
+
+<!-- Navigation -->
+<nav class="bg-white shadow mb-6">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+        <span class="font-bold text-xl text-teal-600">🦅 HawkEye CNN</span>
+        <div class="space-x-4 text-sm font-medium">
+            <a href="index.html" class="hover:text-teal-600">Home</a>
+            <a href="upload.html" class="hover:text-teal-600">Upload Video</a>
+            <a href="webcam.html" class="hover:text-teal-600">Webcam</a>
+            <a href="rtsp.html" class="hover:text-teal-600">RTSP</a>
+            <a href="logs.html" class="text-teal-600 font-semibold">Detection Logs</a>
+            <a href="dashboard.html" class="hover:text-teal-600">Dashboard</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="max-w-6xl mx-auto px-4 pb-10">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Detection Logs</h1>
+        <p class="text-gray-600">View and manage saved detection sessions from webcam monitoring</p>
+    </div>
+
+    <!-- Sessions List -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-700">Recent Sessions</h2>
+            <button id="refreshBtn" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded text-sm">
+                🔄 Refresh
+            </button>
+        </div>
+
+        <div id="sessionsList" class="space-y-3">
+            <p class="text-gray-500 text-center py-8">Loading sessions...</p>
+        </div>
+    </div>
+
+    <!-- Session Details Modal -->
+    <div id="sessionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">Session Details</h2>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="sessionDetails" class="p-6 overflow-y-auto flex-1">
+                <!-- Details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="js/config.js"></script>
+<script>
+const API_BASE = (window.API_BASE || 'http://localhost:8001');
+const sessionsList = document.getElementById('sessionsList');
+const refreshBtn = document.getElementById('refreshBtn');
+const sessionModal = document.getElementById('sessionModal');
+const closeModal = document.getElementById('closeModal');
+const sessionDetails = document.getElementById('sessionDetails');
+
+// Format duration
+function formatDuration(seconds) {
+    if (!seconds) return 'N/A';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}m ${secs}s`;
+}
+
+// Format timestamp
+function formatTime(isoString) {
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    return date.toLocaleString();
+}
+
+// Load sessions
+async function loadSessions() {
+    try {
+        sessionsList.innerHTML = '<p class="text-gray-500 text-center py-8">Loading sessions...</p>';
+        
+        const response = await fetch(`${API_BASE}/logs/sessions?limit=20`);
+        const data = await response.json();
+        
+        if (!data.sessions || data.sessions.length === 0) {
+            sessionsList.innerHTML = `
+                <div class="text-center py-12">
+                    <p class="text-gray-500 text-lg mb-2">No detection sessions found</p>
+                    <p class="text-gray-400 text-sm">Start webcam detection to create your first session</p>
+                </div>
+            `;
+            return;
+        }
+        
+        sessionsList.innerHTML = data.sessions.map(session => {
+            const threatCount = Object.values(session.stats.threat_counts).reduce((a, b) => a + b, 0);
+            const threatTypes = Object.keys(session.stats.threat_counts).join(', ') || 'None';
+            
+            return `
+                <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition"
+                     onclick="viewSession('${session.session_id}')">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-800 mb-2">
+                                📹 Session ${session.session_id}
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div>
+                                    <span class="text-gray-500">Started:</span>
+                                    <div class="font-medium">${formatTime(session.start_time)}</div>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Duration:</span>
+                                    <div class="font-medium">${formatDuration(session.duration_seconds)}</div>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Frames:</span>
+                                    <div class="font-medium">${session.stats.total_frames}</div>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">Threats:</span>
+                                    <div class="font-medium text-red-600">${threatCount}</div>
+                                </div>
+                            </div>
+                            ${threatCount > 0 ? `
+                                <div class="mt-2 text-sm">
+                                    <span class="text-gray-500">Types: </span>
+                                    <span class="font-medium text-orange-600">${threatTypes}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="ml-4">
+                            <button onclick="deleteSession(event, '${session.session_id}')" 
+                                    class="text-red-500 hover:text-red-700 text-sm px-3 py-1 border border-red-300 rounded hover:bg-red-50">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        sessionsList.innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <p>❌ Error loading sessions</p>
+                <p class="text-sm mt-2">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// View session details
+async function viewSession(sessionId) {
+    try {
+        sessionModal.classList.remove('hidden');
+        sessionDetails.innerHTML = '<p class="text-center py-8 text-gray-500">Loading...</p>';
+        
+        const response = await fetch(`${API_BASE}/logs/session/${sessionId}`);
+        const session = await response.json();
+        
+        const threatCount = Object.values(session.stats.threat_counts).reduce((a, b) => a + b, 0);
+        
+        sessionDetails.innerHTML = `
+            <div class="space-y-6">
+                <!-- Session Summary -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-3">Session Summary</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <div class="text-sm text-gray-500">Session ID</div>
+                            <div class="font-mono text-sm">${session.session_id}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Started</div>
+                            <div class="font-medium">${formatTime(session.start_time)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Ended</div>
+                            <div class="font-medium">${formatTime(session.end_time)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Duration</div>
+                            <div class="font-medium">${formatDuration(session.duration_seconds)}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Total Frames</div>
+                            <div class="font-medium">${session.stats.total_frames}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Frames with Threats</div>
+                            <div class="font-medium text-red-600">${session.stats.frames_with_threats}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Threat Statistics -->
+                ${threatCount > 0 ? `
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <h3 class="font-semibold text-lg mb-3 text-red-800">Threat Statistics</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            ${Object.entries(session.stats.threat_counts).map(([type, count]) => `
+                                <div class="bg-white p-3 rounded border border-red-200">
+                                    <div class="text-sm text-gray-600">${type}</div>
+                                    <div class="text-2xl font-bold text-red-600">${count}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : '<p class="text-green-600">✓ No threats detected in this session</p>'}
+
+                <!-- Detection Events -->
+                ${session.detections && session.detections.length > 0 ? `
+                    <div>
+                        <h3 class="font-semibold text-lg mb-3">Detection Events (${session.detections.length})</h3>
+                        <div class="space-y-2 max-h-96 overflow-y-auto">
+                            ${session.detections.map(event => `
+                                <div class="border border-gray-200 rounded p-3 bg-gray-50">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="text-sm font-mono text-gray-600">${formatTime(event.timestamp)}</span>
+                                        <span class="text-sm text-gray-500">Frame ${event.frame_number}</span>
+                                    </div>
+                                    <div class="space-y-1">
+                                        ${event.detections.map(det => `
+                                            <div class="text-sm">
+                                                <span class="font-semibold text-red-600">${det.class}</span>
+                                                <span class="text-gray-600">at</span>
+                                                <span class="font-mono text-xs">[${det.bbox.join(', ')}]</span>
+                                                <span class="text-gray-600">-</span>
+                                                <span class="text-green-600">${(det.confidence * 100).toFixed(1)}%</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+    } catch (error) {
+        sessionDetails.innerHTML = `
+            <div class="text-center py-8 text-red-600">
+                <p>❌ Error loading session details</p>
+                <p class="text-sm mt-2">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Delete session
+async function deleteSession(event, sessionId) {
+    event.stopPropagation();
+    
+    if (!confirm(`Delete session ${sessionId}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/logs/session/${sessionId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            loadSessions();
+        } else {
+            alert('Failed to delete session');
+        }
+    } catch (error) {
+        alert('Error deleting session: ' + error.message);
+    }
+}
+
+// Close modal
+closeModal.addEventListener('click', () => {
+    sessionModal.classList.add('hidden');
+});
+
+// Close modal on background click
+sessionModal.addEventListener('click', (e) => {
+    if (e.target === sessionModal) {
+        sessionModal.classList.add('hidden');
+    }
+});
+
+// Refresh button
+refreshBtn.addEventListener('click', loadSessions);
+
+// Initial load
+loadSessions();
+</script>
+
+</body>
+</html>

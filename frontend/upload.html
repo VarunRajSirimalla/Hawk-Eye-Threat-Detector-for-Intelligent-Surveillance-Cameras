@@ -1,0 +1,13 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Upload Video</title><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="css/styles.css"/></head><body class="bg-gray-50">
+<nav class="bg-white shadow mb-6"><div class="max-w-6xl mx-auto px-4 py-3 flex justify-between"><span class="font-semibold text-teal-600">Threat Detection</span><div class="space-x-4 text-sm font-medium"><a href="index.html" class="hover:text-teal-600">Home</a><a href="upload.html" class="text-teal-600">Upload Video</a><a href="webcam.html" class="hover:text-teal-600">Webcam</a><a href="rtsp.html" class="hover:text-teal-600">RTSP</a><a href="dashboard.html" class="hover:text-teal-600">Dashboard</a></div></div></nav>
+<main class="max-w-5xl mx-auto px-4">
+<h1 class="text-2xl font-bold mb-4">Upload CCTV Video</h1>
+<div id="dropzone" class="border-2 border-dashed border-teal-400 rounded p-10 text-center bg-white mb-4 cursor-pointer">Drop video file here or click to select</div>
+<input type="file" id="fileInput" accept="video/*" class="hidden"/>
+<button id="processBtn" class="bg-teal-600 text-white px-4 py-2 rounded disabled:opacity-50" disabled>Process Video</button>
+<div id="loader" class="mt-4 hidden flex justify-center"><div class="spinner"></div></div>
+<div id="summary" class="mt-6 hidden bg-white p-4 rounded border"><h2 class="font-semibold mb-2">Summary</h2><pre id="summaryText" class="text-sm whitespace-pre-wrap"></pre><a id="downloadLink" class="text-teal-600 underline text-sm" target="_blank">Download processed video</a></div>
+</main>
+<script src="js/config.js"></script>
+<script src="js/upload.js"></script>
+</body></html>
